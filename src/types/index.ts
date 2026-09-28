@@ -1,13 +1,13 @@
 import { Models } from "appwrite";
 
-export interface Profile extends Models.Document {
+export interface Profile extends Models.Row {
   userId: string;
   name: string;
   email: string;
   publicKey: string;
 }
 
-export interface KeyVault extends Models.Document {
+export interface KeyVault extends Models.Row {
   publicKey: string;
   salt: string;
   iv: string;
@@ -15,7 +15,7 @@ export interface KeyVault extends Models.Document {
   iterations: number;
 }
 
-export interface Message extends Models.Document {
+export interface Message extends Models.Row {
   conversationId: string;
   senderId: string;
   senderName: string;
