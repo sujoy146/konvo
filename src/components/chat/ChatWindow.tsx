@@ -37,7 +37,7 @@ export function ChatWindow({
 
   return (
     <div
-      className="relative grid h-full min-h-0 min-w-0 flex-1"
+      className="relative grid h-dvh min-h-0 min-w-0 flex-none sm:h-[calc(100dvh-2rem)] md:h-[calc(100dvh-4rem)]"
       style={{ gridTemplateRows: "auto minmax(0, 1fr) auto" }}
     >
       {/* Header */}
