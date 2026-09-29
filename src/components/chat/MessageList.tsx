@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { LocalMessage } from "@/types/message";
 import { MessageBubble } from "./MessageBubble";
 import { Spinner } from "../ui/Spinner";
@@ -21,42 +21,18 @@ export function MessageList({
   onRetry,
   openedUnreadIds,
 }: MessageListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
 
-  const scrollToBottom = (smooth = true) => {
-    bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
-  };
-
-  // Auto-scroll when messages change, unless user has scrolled up
+  // Keep the newest message in view whenever history or a live message arrives.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 120;
-
-    if (isNearBottom || messages[messages.length - 1]?.senderId === currentUserId) {
-      scrollToBottom(messages.length > 1);
-      setShowScrollBtn(false);
-    } else {
-      setShowScrollBtn(true);
-    }
-  }, [messages, currentUserId]);
-
-  // Scroll on open
-  useEffect(() => {
-    scrollToBottom(false);
-  }, []);
-
-  const handleScroll = () => {
-    const container = containerRef.current;
-    if (!container) return;
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 120;
-    setShowScrollBtn(!isNearBottom && messages.length > 0);
-  };
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: messages.length > 1 ? "smooth" : "auto",
+    });
+  }, [messages]);
 
   if (loading) {
     return (
@@ -86,7 +62,6 @@ export function MessageList({
     <div className="relative h-full min-h-0 w-full overflow-hidden">
       <div
         ref={containerRef}
-        onScroll={handleScroll}
         role="log"
         aria-live="polite"
         aria-label="Messages"
@@ -101,17 +76,7 @@ export function MessageList({
             onRetry={onRetry}
           />
         ))}
-        <div ref={bottomRef} className="shrink-0 h-1" />
       </div>
-
-      {showScrollBtn && (
-        <button
-          onClick={() => { scrollToBottom(); setShowScrollBtn(false); }}
-          className="absolute bottom-4 right-4 bg-blue-600 text-white rounded-full px-3 py-1.5 text-xs shadow-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          ↓ New messages
-        </button>
-      )}
     </div>
   );
 }

@@ -10,11 +10,13 @@ export function MessageInput({ onSend, disabled, disabledReason }: MessageInputP
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const canSend = text.trim().length > 0 && text.trim().length <= 2000 && !disabled;
+  const trimmedText = text.trim();
+  const canSend = trimmedText.length > 0 && trimmedText.length <= 2000 && !disabled;
 
   const handleSend = () => {
-    if (!canSend) return;
-    onSend(text);
+    const message = text.trim();
+    if (!message || message.length > 2000 || disabled) return;
+    onSend(message);
     setText("");
     // Reset textarea height
     if (textareaRef.current) {
@@ -53,6 +55,7 @@ export function MessageInput({ onSend, disabled, disabledReason }: MessageInputP
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           disabled={disabled}
+          maxLength={2000}
           rows={1}
           placeholder={disabled ? "Message unavailable" : "Type a message…"}
           aria-label="Message input"
@@ -70,7 +73,7 @@ export function MessageInput({ onSend, disabled, disabledReason }: MessageInputP
           </svg>
         </button>
       </div>
-      {text.trim().length > 1900 && (
+      {trimmedText.length > 1900 && (
         <p className={`text-xs mt-1 text-right ${charsLeft < 0 ? "text-red-500" : "text-gray-400"}`}>
           {charsLeft} characters left
         </p>
