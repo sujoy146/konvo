@@ -36,7 +36,10 @@ export function ChatWindow({
   });
 
   return (
-    <div className="grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto]">
+    <div
+      className="absolute inset-0 grid min-h-0 min-w-0"
+      style={{ gridTemplateRows: "auto minmax(0, 1fr) auto" }}
+    >
       {/* Header */}
       <header className="flex min-h-16 shrink-0 items-center border-b border-white/30 bg-white/50 px-3 py-2 shadow-sm backdrop-blur-md sm:px-4">
         <button
