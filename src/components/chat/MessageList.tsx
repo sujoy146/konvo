@@ -83,7 +83,7 @@ export function MessageList({
   }
 
   return (
-    <div className="flex-1 relative overflow-hidden">
+    <div className="relative min-h-0 flex-1 overflow-hidden">
       <div
         ref={containerRef}
         onScroll={handleScroll}

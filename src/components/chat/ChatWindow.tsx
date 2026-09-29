@@ -36,11 +36,12 @@ export function ChatWindow({
   });
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       {/* Header */}
-      <header className="px-4 py-3 bg-white/30 backdrop-blur-md border-b border-white/30 flex items-center shadow-sm shrink-0">
+      <header className="flex min-h-16 shrink-0 items-center border-b border-white/30 bg-white/50 px-3 py-2 shadow-sm backdrop-blur-md sm:px-4">
         <button
-          className="md:hidden mr-3 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+          type="button"
+          className="mr-2 inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl text-gray-600 hover:bg-white/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 md:hidden"
           onClick={onBack}
           aria-label="Back to users list"
         >
@@ -50,7 +51,7 @@ export function ChatWindow({
         </button>
 
         <div className="flex-1 min-w-0">
-          <h3 className="text-base font-semibold text-black truncate">{otherUser.name}</h3>
+          <h3 className="truncate text-base font-semibold text-black">{otherUser.name}</h3>
         </div>
       </header>
 

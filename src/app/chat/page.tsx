@@ -158,10 +158,12 @@ export default function ChatPage() {
 
   return (
     <>
-      <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+      {profileOpen && (
+        <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+      )}
 
-      <main className="flex h-dvh overflow-hidden p-0 sm:p-4 md:p-8 bg-transparent">
-        <div className="flex w-full h-full max-w-7xl mx-auto overflow-hidden bg-white/40 backdrop-blur-xl border-0 sm:border border-white/50 rounded-none sm:rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]">
+      <main className="flex h-dvh min-h-0 overflow-hidden p-0 sm:p-4 md:p-8 bg-transparent">
+        <div className="flex w-full h-full min-h-0 max-w-7xl mx-auto overflow-hidden bg-white/40 backdrop-blur-xl border-0 sm:border border-white/50 rounded-none sm:rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]">
           {/* Sidebar */}
           <div
             className={`w-full md:w-80 border-r border-white/30 flex flex-col shrink-0 ${
@@ -228,7 +230,7 @@ export default function ChatPage() {
 
         {/* Chat area */}
         <div
-          className={`flex-1 overflow-hidden ${!selectedUser ? "hidden md:flex" : "flex"} flex-col`}
+          className={`flex-1 min-w-0 min-h-0 overflow-hidden ${!selectedUser ? "hidden md:flex" : "flex"} flex-col`}
         >
           {selectedUser ? (
             <ChatWindow

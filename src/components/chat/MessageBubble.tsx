@@ -22,7 +22,7 @@ export function MessageBubble({ message, isOwn, isUnread, onRetry }: MessageBubb
         <span className="text-xs text-gray-500 mb-1 ml-1">{message.senderName}</span>
       )}
       <div
-        className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm shadow-sm transition-colors ${
+        className={`max-w-[88%] break-words rounded-2xl px-4 py-2 text-sm shadow-sm transition-colors sm:max-w-[75%] ${
           isOwn
             ? isFailed
               ? "bg-red-100 text-red-800 border border-red-200"

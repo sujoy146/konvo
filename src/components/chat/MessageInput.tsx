@@ -39,11 +39,14 @@ export function MessageInput({ onSend, disabled, disabledReason }: MessageInputP
   const charsLeft = 2000 - text.trim().length;
 
   return (
-    <div className="border-t border-white/30 bg-white/30 backdrop-blur-md px-4 py-3">
+    <div
+      className="shrink-0 border-t border-white/40 bg-white/70 px-3 pt-3 backdrop-blur-md sm:px-4"
+      style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+    >
       {disabledReason && (
         <p className="text-xs text-amber-600 mb-2 text-center">{disabledReason}</p>
       )}
-      <div className="flex items-end space-x-2">
+      <div className="flex items-end gap-2">
         <textarea
           ref={textareaRef}
           value={text}
@@ -51,9 +54,9 @@ export function MessageInput({ onSend, disabled, disabledReason }: MessageInputP
           onKeyDown={handleKeyDown}
           disabled={disabled}
           rows={1}
-          placeholder={disabled ? "Encryption not ready…" : "Type a message… (Enter to send, Shift+Enter for new line)"}
+          placeholder={disabled ? "Message unavailable" : "Type a message…"}
           aria-label="Message input"
-          className="flex-1 resize-none rounded-xl border border-white/50 bg-white/40 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/70 disabled:opacity-50 disabled:cursor-not-allowed max-h-36 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+          className="min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-white/60 bg-white px-3 py-2 text-base text-black placeholder-gray-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
           style={{ height: "auto" }}
         />
         <button

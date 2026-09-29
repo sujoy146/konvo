@@ -68,13 +68,18 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
     .toUpperCase()
     .slice(0, 2);
 
+  // Unmount the overlay completely when closed so it cannot cover the chat
+  // or intercept taps on mobile, even if a transform transition is interrupted.
+  if (!open) return null;
+
   return (
     <>
       {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+      <button
+        type="button"
+        aria-label="Close profile panel"
+        className="fixed inset-0 z-40 cursor-default bg-black/50 transition-opacity duration-200"
         onClick={onClose}
-        aria-hidden="true"
       />
 
       {/* Drawer */}
@@ -82,15 +87,16 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Profile"
-        className={`fixed top-0 right-0 h-full w-full sm:w-80 z-50 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}
+        className="fixed inset-y-0 right-0 z-50 flex h-dvh w-screen flex-col bg-white shadow-2xl sm:w-96"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex min-h-16 items-center justify-between border-b border-gray-100 px-5 py-2">
           <h2 className="text-lg font-semibold text-gray-900">Profile</h2>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close profile panel"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
