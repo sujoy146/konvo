@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { ID, Models } from "appwrite";
 import { account } from "@/lib/appwrite";
 import { config } from "@/lib/config";
@@ -11,10 +11,10 @@ interface AuthContextType {
   loading: boolean;
   signup: (email: string, password: string, name: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  resendVerification: () => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
-  pendingPassword: string | null;
-  clearPendingPassword: () => void;
+  updateName: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -22,14 +22,10 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null);
   const [loading, setLoading] = useState(true);
-  // We hold the password briefly after login/signup so EncryptionContext can use it
-  // to derive/unlock without asking the user to enter it again.
-  // It is cleared after EncryptionContext consumes it.
-  const [pendingPassword, setPendingPassword] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try {
       const current = await account.get();
       setUser(current);
@@ -38,20 +34,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    refresh();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const t = setTimeout(() => { refresh(); }, 0);
+    return () => clearTimeout(t);
+  }, [refresh]);
 
   // Route guard
   useEffect(() => {
     if (loading) return;
     const isAuthRoute = pathname === "/login" || pathname === "/signup";
-    if (user && isAuthRoute) {
+    const verificationRequired = config.requireEmailVerification && user && !user.emailVerification;
+
+    if (verificationRequired) {
+      if (pathname !== "/verify") router.replace("/verify");
+    } else if (user && (isAuthRoute || pathname === "/verify")) {
       router.replace("/chat");
-    } else if (!user && pathname === "/chat") {
+    } else if (!user && pathname.startsWith("/chat")) {
       router.replace("/login");
     }
   }, [user, loading, pathname, router]);
@@ -59,17 +59,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, name: string) => {
     await account.create(ID.unique(), email, password, name);
     await account.createEmailPasswordSession(email, password);
+
     if (config.requireEmailVerification) {
-      await account.createVerification(`${window.location.origin}/verify`);
+      try {
+        await account.createVerification(`${window.location.origin}/verify`);
+      } catch (err) {
+        await refresh();
+        router.replace("/verify");
+        throw err;
+      }
+      await refresh();
+      router.replace("/verify");
+      return;
     }
-    setPendingPassword(password);
+
     await refresh();
+    router.replace("/chat");
   };
 
   const login = async (email: string, password: string) => {
+    // Clear stale session data before creating new session
+    localStorage.removeItem("cookieFallback");
     await account.createEmailPasswordSession(email, password);
-    setPendingPassword(password);
     await refresh();
+  };
+
+  const resendVerification = async () => {
+    if (!user) throw new Error("Sign in before requesting a verification email.");
+    if (user.emailVerification) return;
+    await account.createVerification(`${window.location.origin}/verify`);
   };
 
   const logout = async () => {
@@ -78,15 +96,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore if session already expired
     }
-    setPendingPassword(null);
+    // Clear stale session fallback to prevent 401 on next login
+    localStorage.removeItem("cookieFallback");
     setUser(null);
     router.push("/login");
   };
 
-  const clearPendingPassword = () => setPendingPassword(null);
+  const updateName = async (name: string) => {
+    await account.updateName(name);
+    await refresh();
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signup, login, logout, refresh, pendingPassword, clearPendingPassword }}>
+    <AuthContext.Provider value={{ user, loading, signup, login, resendVerification, logout, refresh, updateName }}>
       {children}
     </AuthContext.Provider>
   );

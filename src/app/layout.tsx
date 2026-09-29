@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Figtree } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import { EncryptionProvider } from "@/context/EncryptionContext";
+import { cn } from "@/lib/utils";
+
+const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Konvo - E2EE Chat",
-  description: "End-to-End Encrypted Real-Time Chat Application",
+  title: "Konvo",
+  description: "Real-Time Chat Application",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -17,12 +22,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className={cn("font-sans", figtree.variable)}>
+      <body className={`${inter.className} text-black`} suppressHydrationWarning>
         <AuthProvider>
-          <EncryptionProvider>
-            {children}
-          </EncryptionProvider>
+          {children}
         </AuthProvider>
       </body>
     </html>

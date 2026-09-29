@@ -5,6 +5,7 @@ export const config = {
   appwriteProfilesCollectionId: process.env.NEXT_PUBLIC_APPWRITE_PROFILES_COLLECTION_ID || "",
   appwriteKeysCollectionId: process.env.NEXT_PUBLIC_APPWRITE_KEYS_COLLECTION_ID || "",
   appwriteMessagesCollectionId: process.env.NEXT_PUBLIC_APPWRITE_MESSAGES_COLLECTION_ID || "",
+  appwriteSendMessageFunctionId: process.env.NEXT_PUBLIC_APPWRITE_SEND_MESSAGE_FUNCTION_ID || "",
   requireEmailVerification: process.env.NEXT_PUBLIC_REQUIRE_EMAIL_VERIFICATION === "true",
 };
 

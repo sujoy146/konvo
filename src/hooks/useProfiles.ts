@@ -28,7 +28,7 @@ export function useProfiles(currentUserId: string | undefined) {
           ]
         );
         setProfiles(response.rows);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to fetch profiles", err);
         setError("Failed to load users");
       } finally {

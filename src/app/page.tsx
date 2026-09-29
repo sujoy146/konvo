@@ -20,7 +20,7 @@ export default function Home() {
   }, [user, loading, router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50">
+    <main className="flex min-h-screen items-center justify-center bg-transparent">
       <Spinner className="w-10 h-10" />
     </main>
   );

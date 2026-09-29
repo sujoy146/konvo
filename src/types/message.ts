@@ -9,13 +9,11 @@ export interface LocalMessage {
   senderName: string;
   recipientId: string;
   $createdAt: string;
-  text: string | null; // null if decryption failed
-  decryptError?: boolean;
+  content: string;
   status?: MessageStatus; // only for optimistic outgoing messages
-  ciphertext?: string; // kept in memory for retries; never persisted
 }
 
-export function messageFromRow(row: Message): Omit<LocalMessage, "text" | "decryptError"> {
+export function messageFromRow(row: Message): Omit<LocalMessage, "status"> {
   return {
     $id: row.$id,
     conversationId: row.conversationId,
@@ -23,6 +21,6 @@ export function messageFromRow(row: Message): Omit<LocalMessage, "text" | "decry
     senderName: row.senderName,
     recipientId: row.recipientId,
     $createdAt: row.$createdAt,
-    ciphertext: row.ciphertext,
+    content: row.content,
   };
 }

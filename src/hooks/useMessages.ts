@@ -1,50 +1,53 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ID, Query, Permission, Role } from "appwrite";
+import { ID, Query } from "appwrite";
 import { tablesDb, client } from "@/lib/appwrite";
 import { config } from "@/lib/config";
 import { useAuth } from "@/context/AuthContext";
-import { useEncryption } from "@/context/EncryptionContext";
 import { getConversationId } from "@/lib/conversation";
+import { createMessage } from "@/lib/messageDelivery";
 import { Profile, Message } from "@/types";
 import { LocalMessage, messageFromRow } from "@/types/message";
-import { setLastRead, getLastRead } from "@/lib/storage";
+import { setLastRead, getLastRead, getUnreadCounts, setUnreadCounts } from "@/lib/storage";
 
 const RETRY_DELAYS = [1000, 2000, 4000];
 
-export function useMessages(otherUser: Profile | null) {
+interface UseMessagesOptions {
+  /**
+   * Called once messages have loaded.
+   * Receives the IDs of incoming messages that arrived after the last-read
+   * timestamp (i.e., the ones that were "unread" before opening).
+   */
+  onViewed?: (unreadIds: string[], senderId: string) => void;
+}
+
+export function useMessages(otherUser: Profile | null, { onViewed }: UseMessagesOptions = {}) {
   const { user } = useAuth();
-  const { getConversationKey, encrypt, decrypt, status: encStatus } = useEncryption();
 
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [convKey, setConvKey] = useState<CryptoKey | null>(null);
 
   // Track active conversationId to avoid stale state updates
   const activeConvIdRef = useRef<string | null>(null);
 
-  const decryptRow = useCallback(
-    async (row: Message, key: CryptoKey): Promise<LocalMessage> => {
-      const base = messageFromRow(row);
-      try {
-        const aad = `${row.$id}|${row.conversationId}|${row.senderId}`;
-        const text = await decrypt(key, row.ciphertext, row.$id, row.conversationId, row.senderId);
-        return { ...base, text };
-      } catch {
-        return { ...base, text: null, decryptError: true };
-      }
-    },
-    [decrypt]
-  );
-
-  // Load conversation key and history when otherUser changes
+  // Keep a ref to messages for use in callbacks that shouldn't re-trigger effects.
+  const messagesRef = useRef<LocalMessage[]>([]);
   useEffect(() => {
-    if (!user || !otherUser || encStatus !== "ready") {
-      setMessages([]);
-      setConvKey(null);
-      return;
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Stable ref for the onViewed callback so effects don't need it as a dep.
+  const onViewedRef = useRef(onViewed);
+  useEffect(() => { onViewedRef.current = onViewed; }, [onViewed]);
+
+  // Load conversation history when otherUser changes
+  useEffect(() => {
+    if (!user || !otherUser) {
+      activeConvIdRef.current = null;
+      const t = setTimeout(() => setMessages([]), 0);
+      return () => clearTimeout(t);
     }
 
     const convId = getConversationId(user.$id, otherUser.userId);
@@ -56,12 +59,6 @@ export function useMessages(otherUser: Profile | null) {
       setMessages([]);
 
       try {
-        // Derive conversation key
-        const key = await getConversationKey(otherUser);
-        if (activeConvIdRef.current !== convId) return; // stale
-        setConvKey(key);
-
-        // Fetch last 50 messages, newest first, then reverse for display
         const response = await tablesDb.listRows<Message>(
           config.appwriteDatabaseId,
           config.appwriteMessagesCollectionId,
@@ -74,17 +71,38 @@ export function useMessages(otherUser: Profile | null) {
         if (activeConvIdRef.current !== convId) return; // stale
 
         const rows = [...response.rows].reverse();
-        const decrypted = await Promise.all(rows.map((r) => decryptRow(r, key)));
-        if (activeConvIdRef.current !== convId) return; // stale
+        const mapped = rows.map((r) => messageFromRow(r) as LocalMessage);
 
-        setMessages(decrypted);
+        setMessages(mapped);
 
-        // Mark as read
+        // Determine which messages were "unread" before opening:
+        // any incoming message (from otherUser) created after lastRead[otherUser.userId].
+        const lastRead = getLastRead(user.$id);
+        const lastReadTime = lastRead[otherUser.userId] ?? "";
+        const unreadIds = mapped
+          .filter(
+            (m) =>
+              m.senderId === otherUser.userId &&
+              m.$createdAt > lastReadTime
+          )
+          .map((m) => m.$id);
+
+        // Mark as read in storage
         if (rows.length > 0) {
-          const lastRead = getLastRead(user.$id);
-          lastRead[otherUser.userId] = new Date().toISOString();
-          setLastRead(user.$id, lastRead);
+          const lr = getLastRead(user.$id);
+          lr[otherUser.userId] = new Date().toISOString();
+          setLastRead(user.$id, lr);
         }
+
+        // Also clear any persisted unread count for this sender
+        const counts = getUnreadCounts(user.$id);
+        if (counts[otherUser.userId]) {
+          delete counts[otherUser.userId];
+          setUnreadCounts(user.$id, counts);
+        }
+
+        // Notify the chat page of which messages to highlight
+        onViewedRef.current?.(unreadIds, otherUser.userId);
       } catch (err) {
         console.error("Failed to load messages", err);
         if (activeConvIdRef.current === convId) {
@@ -100,79 +118,56 @@ export function useMessages(otherUser: Profile | null) {
     return () => {
       activeConvIdRef.current = null;
     };
-  }, [user, otherUser, encStatus, getConversationKey, decryptRow]);
+  }, [user, otherUser]);
 
-  // Realtime subscription for incoming messages
+  // Realtime subscription — keyed on user only so it doesn't restart on
+  // conversation switch. The activeConvIdRef filters events at runtime.
   useEffect(() => {
-    if (!user || !convKey) return;
+    if (!user) return;
 
-    const channel = `databases.${config.appwriteDatabaseId}.collections.${config.appwriteMessagesCollectionId}.documents`;
+    const channel = `tablesdb.${config.appwriteDatabaseId}.tables.${config.appwriteMessagesCollectionId}.rows`;
 
-    const unsubscribe = client.subscribe(channel, async (event) => {
+    const unsubscribe = client.subscribe(channel, (event) => {
       const payload = event.payload as Message;
+
       // Only handle create events
       if (!event.events.some((e) => e.endsWith(".create"))) return;
 
-      const convId = activeConvIdRef.current;
+      // Ignore messages for other conversations
+      if (payload.conversationId !== activeConvIdRef.current) return;
 
       setMessages((prev) => {
-        // Replace optimistic message by $id if it exists
-        const exists = prev.find((m) => m.$id === payload.$id);
-        if (exists) {
+        const idx = prev.findIndex((m) => m.$id === payload.$id);
+
+        if (idx !== -1) {
+          // Already present (optimistic or duplicate) — update timestamp/status
           return prev.map((m) =>
-            m.$id === payload.$id ? { ...m, status: "sent", $createdAt: payload.$createdAt } : m
+            m.$id === payload.$id
+              ? { ...m, status: "sent" as const, $createdAt: payload.$createdAt }
+              : m
           );
         }
-        return prev;
+
+        // Brand-new incoming message — no unread highlight needed since the
+        // conversation is already open.
+        const newMsg = messageFromRow(payload) as LocalMessage;
+        return [...prev, newMsg];
       });
 
-      // If not an existing optimistic message, decrypt and append
-      setMessages((prev) => {
-        const exists = prev.find((m) => m.$id === payload.$id && m.status === "sent");
-        if (exists) return prev;
-
-        // Append async (we'll set it after decryption)
-        return prev;
-      });
-
-      if (payload.conversationId === activeConvIdRef.current) {
-        // New incoming message for active conversation
-        const base = messageFromRow(payload);
-        const existing = messages.find((m) => m.$id === payload.$id);
-        if (existing) return;
-
-        try {
-          const text = await decrypt(convKey, payload.ciphertext, payload.$id, payload.conversationId, payload.senderId);
-          const newMsg: LocalMessage = { ...base, text };
-          setMessages((prev) => {
-            if (prev.find((m) => m.$id === payload.$id)) return prev;
-            return [...prev, newMsg];
-          });
-
-          // Update lastRead since conversation is open
-          if (user) {
-            const lr = getLastRead(user.$id);
-            lr[payload.senderId] = new Date().toISOString();
-            setLastRead(user.$id, lr);
-          }
-        } catch {
-          const newMsg: LocalMessage = { ...base, text: null, decryptError: true };
-          setMessages((prev) => {
-            if (prev.find((m) => m.$id === payload.$id)) return prev;
-            return [...prev, newMsg];
-          });
-        }
-      }
+      // Update lastRead since the conversation is open
+      const lr = getLastRead(user.$id);
+      lr[payload.senderId] = new Date().toISOString();
+      setLastRead(user.$id, lr);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [user, convKey, decrypt, messages]);
+  }, [user]);
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!user || !otherUser || !convKey) return;
+      if (!user || !otherUser) return;
 
       const trimmed = text.trim();
       if (!trimmed || trimmed.length > 2000) return;
@@ -180,11 +175,6 @@ export function useMessages(otherUser: Profile | null) {
       const convId = getConversationId(user.$id, otherUser.userId);
       const msgId = ID.unique();
 
-      // Encrypt once, reuse on retries
-      const aad = `${msgId}|${convId}|${user.$id}`;
-      const ciphertext = await encrypt(convKey, trimmed, msgId, convId, user.$id);
-
-      // Optimistic message
       const optimistic: LocalMessage = {
         $id: msgId,
         conversationId: convId,
@@ -192,36 +182,24 @@ export function useMessages(otherUser: Profile | null) {
         senderName: user.name,
         recipientId: otherUser.userId,
         $createdAt: new Date().toISOString(),
-        text: trimmed,
+        content: trimmed,
         status: "sending",
-        ciphertext,
       };
       setMessages((prev) => [...prev, optimistic]);
 
       const doSend = async (attempt: number): Promise<void> => {
         try {
-          await tablesDb.createRow<Message>(
-            config.appwriteDatabaseId,
-            config.appwriteMessagesCollectionId,
-            msgId,
-            {
-              conversationId: convId,
-              senderId: user.$id,
-              senderName: user.name,
-              recipientId: otherUser.userId,
-              ciphertext,
-            } as Omit<Message, keyof import("appwrite").Models.Row> & Record<string, unknown>,
-            [
-              Permission.read(Role.user(user.$id)),
-              Permission.read(Role.user(otherUser.userId)),
-            ]
-          );
+          await createMessage({
+            messageId: msgId,
+            recipientId: otherUser.userId,
+            conversationId: convId,
+            content: trimmed,
+          });
 
           setMessages((prev) =>
             prev.map((m) => (m.$id === msgId ? { ...m, status: "sent" } : m))
           );
         } catch (err: unknown) {
-          // 409 = already exists (earlier retry succeeded)
           const code = (err as { code?: number }).code;
           if (code === 409) {
             setMessages((prev) =>
@@ -230,7 +208,6 @@ export function useMessages(otherUser: Profile | null) {
             return;
           }
 
-          // Don't retry on client errors (except 429 rate limit)
           if (code && code >= 400 && code < 500 && code !== 429) {
             setMessages((prev) =>
               prev.map((m) => (m.$id === msgId ? { ...m, status: "failed" } : m))
@@ -251,14 +228,15 @@ export function useMessages(otherUser: Profile | null) {
 
       await doSend(0);
     },
-    [user, otherUser, convKey, encrypt]
+    [user, otherUser]
   );
 
   const retryMessage = useCallback(
     async (msgId: string) => {
-      if (!user || !otherUser || !convKey) return;
-      const msg = messages.find((m) => m.$id === msgId);
-      if (!msg || !msg.ciphertext) return;
+      if (!user || !otherUser) return;
+
+      const msg = messagesRef.current.find((m) => m.$id === msgId);
+      if (!msg) return;
 
       const convId = getConversationId(user.$id, otherUser.userId);
 
@@ -267,22 +245,12 @@ export function useMessages(otherUser: Profile | null) {
       );
 
       try {
-        await tablesDb.createRow<Message>(
-          config.appwriteDatabaseId,
-          config.appwriteMessagesCollectionId,
-          msgId,
-          {
-            conversationId: convId,
-            senderId: user.$id,
-            senderName: user.name,
-            recipientId: otherUser.userId,
-            ciphertext: msg.ciphertext,
-          } as Omit<Message, keyof import("appwrite").Models.Row> & Record<string, unknown>,
-          [
-            Permission.read(Role.user(user.$id)),
-            Permission.read(Role.user(otherUser.userId)),
-          ]
-        );
+        await createMessage({
+          messageId: msgId,
+          recipientId: otherUser.userId,
+          conversationId: convId,
+          content: msg.content,
+        });
         setMessages((prev) =>
           prev.map((m) => (m.$id === msgId ? { ...m, status: "sent" } : m))
         );
@@ -299,8 +267,8 @@ export function useMessages(otherUser: Profile | null) {
         }
       }
     },
-    [user, otherUser, convKey, messages]
+    [user, otherUser]
   );
 
-  return { messages, loading, error, sendMessage, retryMessage, convKey };
+  return { messages, loading, error, sendMessage, retryMessage };
 }

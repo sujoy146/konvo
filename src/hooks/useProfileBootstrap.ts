@@ -1,43 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppwriteException, Permission, Role } from "appwrite";
+import { Permission, Role } from "appwrite";
 import { tablesDb } from "@/lib/appwrite";
 import { config } from "@/lib/config";
 import { useAuth } from "@/context/AuthContext";
-import { loadKey } from "@/lib/keystore";
 
 export function useProfileBootstrap() {
   const { user } = useAuth();
   const [bootstrapped, setBootstrapped] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || (config.requireEmailVerification && !user.emailVerification)) return;
 
     const bootstrap = async () => {
       try {
-        const localKey = await loadKey(user.$id);
-        if (!localKey) return; // Wait for encryption context to unlock
-
         try {
-          const profile = await tablesDb.getRow(
+          await tablesDb.getRow(
             config.appwriteDatabaseId,
             config.appwriteProfilesCollectionId,
             user.$id
           );
-
-          // T5.1: If publicKey differs, update it (happens after key reset)
-          if (profile.publicKey !== localKey.publicKey) {
-            await tablesDb.updateRow(
-              config.appwriteDatabaseId,
-              config.appwriteProfilesCollectionId,
-              user.$id,
-              { publicKey: localKey.publicKey }
-            );
-          }
-        } catch (err: any) {
-          if (err.code === 404) {
-            // T5.1: Create profile if 404
+        } catch (err: unknown) {
+          if ((err as { code?: number }).code === 404) {
             await tablesDb.createRow(
               config.appwriteDatabaseId,
               config.appwriteProfilesCollectionId,
@@ -46,7 +31,7 @@ export function useProfileBootstrap() {
                 userId: user.$id,
                 name: user.name,
                 email: user.email,
-                publicKey: localKey.publicKey,
+                publicKey: "",
               },
               [Permission.read(Role.users()), Permission.update(Role.user(user.$id))]
             );

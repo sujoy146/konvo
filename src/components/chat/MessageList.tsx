@@ -9,9 +9,18 @@ interface MessageListProps {
   loading: boolean;
   error: string;
   onRetry: (id: string) => void;
+  /** IDs of messages that were unread when this conversation was opened. */
+  openedUnreadIds: Set<string>;
 }
 
-export function MessageList({ messages, currentUserId, loading, error, onRetry }: MessageListProps) {
+export function MessageList({
+  messages,
+  currentUserId,
+  loading,
+  error,
+  onRetry,
+  openedUnreadIds,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -88,6 +97,7 @@ export function MessageList({ messages, currentUserId, loading, error, onRetry }
             key={msg.$id}
             message={msg}
             isOwn={msg.senderId === currentUserId}
+            isUnread={openedUnreadIds.has(msg.$id)}
             onRetry={onRetry}
           />
         ))}

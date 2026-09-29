@@ -34,11 +34,11 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-transparent p-4">
+      <div className="w-full max-w-md bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] p-8">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-500 mt-2">Log in to your encrypted chat</p>
+          <p className="text-gray-500 mt-2">Log in to your chat</p>
         </div>
 
         {error && (

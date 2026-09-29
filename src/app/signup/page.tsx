@@ -19,8 +19,8 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
-    if (password.length < 10) {
-      setError("Password must be at least 10 characters long.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
       return;
     }
 
@@ -41,20 +41,13 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-transparent p-4">
+      <div className="w-full max-w-md bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] p-8">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Create an account</h1>
-          <p className="text-gray-500 mt-2">Join the encrypted chat</p>
+          <p className="text-gray-500 mt-2">Join the chat</p>
         </div>
 
-        <div className="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-100">
-          <h3 className="font-semibold text-blue-900 text-sm mb-1">Important: Do not forget your password</h3>
-          <p className="text-xs text-blue-800">
-            Your password is used to encrypt your private key. If you forget your password and reset it, 
-            your old messages cannot be recovered.
-          </p>
-        </div>
 
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm">
@@ -68,7 +61,7 @@ export default function SignupPage() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="John Doe"
+            placeholder="Sujoy"
             required
             autoComplete="name"
           />
@@ -82,13 +75,13 @@ export default function SignupPage() {
             autoComplete="email"
           />
           <Input
-            label="Password (min 10 chars)"
+            label="Password (min 8 chars)"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••••"
+            placeholder="••••••••"
             required
-            minLength={10}
+            minLength={8}
             autoComplete="new-password"
           />
           <Button type="submit" className="w-full" isLoading={loading}>
@@ -97,7 +90,7 @@ export default function SignupPage() {
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
-          Already have an account?{" "}
+          Already have an account ?{"  "}
           <Link href="/login" className="text-blue-600 hover:underline font-medium">
             Log in
           </Link>

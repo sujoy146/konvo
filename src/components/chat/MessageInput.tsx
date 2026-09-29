@@ -39,7 +39,7 @@ export function MessageInput({ onSend, disabled, disabledReason }: MessageInputP
   const charsLeft = 2000 - text.trim().length;
 
   return (
-    <div className="border-t border-gray-200 bg-white px-4 py-3">
+    <div className="border-t border-white/30 bg-white/30 backdrop-blur-md px-4 py-3">
       {disabledReason && (
         <p className="text-xs text-amber-600 mb-2 text-center">{disabledReason}</p>
       )}
@@ -53,7 +53,7 @@ export function MessageInput({ onSend, disabled, disabledReason }: MessageInputP
           rows={1}
           placeholder={disabled ? "Encryption not ready…" : "Type a message… (Enter to send, Shift+Enter for new line)"}
           aria-label="Message input"
-          className="flex-1 resize-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed max-h-36"
+          className="flex-1 resize-none rounded-xl border border-white/50 bg-white/40 px-3 py-2 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/70 disabled:opacity-50 disabled:cursor-not-allowed max-h-36 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
           style={{ height: "auto" }}
         />
         <button
