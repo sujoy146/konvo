@@ -36,7 +36,7 @@ export function ChatWindow({
   });
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col">
+    <div className="grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto]">
       {/* Header */}
       <header className="flex min-h-16 shrink-0 items-center border-b border-white/30 bg-white/50 px-3 py-2 shadow-sm backdrop-blur-md sm:px-4">
         <button

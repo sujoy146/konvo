@@ -60,7 +60,7 @@ export function MessageList({
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex h-full min-h-0 w-full items-center justify-center">
         <Spinner />
       </div>
     );
@@ -68,7 +68,7 @@ export function MessageList({
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center p-4 text-sm text-red-500 text-center">
+      <div className="flex h-full min-h-0 w-full items-center justify-center p-4 text-center text-sm text-red-500">
         {error}
       </div>
     );
@@ -76,14 +76,14 @@ export function MessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+      <div className="flex h-full min-h-0 w-full items-center justify-center text-sm text-gray-500">
         No messages yet. Say hello! 👋
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden">
+    <div className="relative h-full min-h-0 w-full overflow-hidden">
       <div
         ref={containerRef}
         onScroll={handleScroll}

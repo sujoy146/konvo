@@ -230,7 +230,7 @@ export default function ChatPage() {
 
         {/* Chat area */}
         <div
-          className={`flex-1 min-w-0 min-h-0 overflow-hidden ${!selectedUser ? "hidden md:flex" : "flex"} flex-col`}
+          className={`relative flex h-full min-w-0 min-h-0 flex-1 overflow-hidden ${!selectedUser ? "hidden md:flex" : "flex"} flex-col`}
         >
           {selectedUser ? (
             <ChatWindow
