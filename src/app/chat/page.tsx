@@ -160,8 +160,8 @@ export default function ChatPage() {
     <>
       <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
 
-      <main className="flex h-dvh overflow-hidden p-2 sm:p-4 md:p-8 bg-transparent">
-        <div className="flex w-full h-full max-w-7xl mx-auto overflow-hidden bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]">
+      <main className="flex h-dvh overflow-hidden p-0 sm:p-4 md:p-8 bg-transparent">
+        <div className="flex w-full h-full max-w-7xl mx-auto overflow-hidden bg-white/40 backdrop-blur-xl border-0 sm:border border-white/50 rounded-none sm:rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]">
           {/* Sidebar */}
           <div
             className={`w-full md:w-80 border-r border-white/30 flex flex-col shrink-0 ${
