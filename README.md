@@ -1,4 +1,4 @@
-# Konvo
+# [Konvo](https://konvo-talk.vercel.app/)
 
 Konvo is a one-to-one chat app built with Next.js, Appwrite Auth, Appwrite TablesDB, Appwrite Functions, and Appwrite Realtime. Messages are stored as **plain text** in the Appwrite messages table; this version does not provide end-to-end encryption.
 
